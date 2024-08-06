@@ -1,20 +1,38 @@
 #include "includes.h"
-#ifndef CACHE_H
-#define CACHE_H
+#ifndef CACHE_TYPES_H
+#define CACHE_TYPES_H
 
 enum LEVEL {L1, L2, L3};
 
-enum REPLACEMENT {LRU, LFU, MRU, RANDOM};
+enum REPLACEMENT {LRU, LFU, N_MRU, RANDOM};
 
 
 class Cache_Block {
-    bool   valid;
-    bool   dirty;
-    uint32 lru_index;
-    uint32 index;
-    uint32 tag;
-    uint32 data; //maybe unnecessary
+    public:
+        bool   valid;
+        bool   dirty;
+        uint8  lru_index;
+        uint32 index;
+        uint32 tag;
+        uint32 data; //maybe unnecessary
+
 };
+
+class statistics {
+    int l1_misses;
+    int l1_hits;
+    
+    int l2_misses;
+    int l2_hits;
+    
+    int l3_misses;
+    int l3_hits;
+
+    //number of times an address wasn't in any level of cache
+    int full_cache_misses;
+    //number of time an address was in atleast on level of cache
+    int full_cache_hits;
+}
 
 
 
@@ -24,32 +42,55 @@ class Cache {
         const LEVEL cache_level;
 
         //Size of cache in bytes
-        const uint64 size;
+        const uint64 cache_size;
 
-        //Size of block in bytes - May be unneccesary
-        const uint8 block_size;
+        //Size of block in bytes
+        const uint32 block_size;
+                
+        //Number of offset bits
+        uint32 num_offset_bits;
 
+        //Number of index bits. 
+        uint32 num_index_bits;
+
+        //Max number of indexes. 
+        uint32 num_indexes;
+
+        //Reference to next level of cache so we can access it on a cache miss
+        Cache* next_level;
+
+        //Object to hold all relevant statistics 
 
 
     public:
-        virtual uint32 access(uint64 address) = 0;
+        //Contructor for Cache, it should initialize every member variable except num_index_bits
+        Cache(LEVEL cache_level, uint64 cache_size, uint32 block_size);
+
+        //Function to make a memory access to this cache, is overriden by each cache type
+        virtual Cache* access(uint64 address, uint8 access_type) = 0;
 
 };
 
-class Set_Associative_Cache : Cache{
+class Set_Associative_Cache : Cache {
 
     protected:
         //Enum holding replacement policy type
         const REPLACEMENT replacement_policy;
         
         //Number of ways this cache has, valid values are [0,255]
-        const uint8 ways;
+        const uint8 num_ways;
 
         //Array holding all cache blocks and ways
         Cache_Block **blocks;
 
     public: 
-        uint32 access(uint64 address) override;
+        Set_Associative_Cache(LEVEL cache_level, uint64 cache_size, uint32 block_size, REPLACEMENT replacement_policy,
+                                uint8 num_ways);
+        
+        //Function to make a memory access to a Set Associative Cache
+        //It returns 1 for a hit and -1 for a miss. Other values may be used for debugging
+        //To use the return value, you must downcast using dynamic_cast
+        Cache* access(uint64 address, uint8 access_type) override;
 
 };
 
@@ -58,7 +99,9 @@ class Direct_Map_Cache : Cache {
         //Dynamically allocated array that holds tag and data info
         Cache_Block* blocks;
     public:
-        uint32 access(uint64 address) override;
+        Direct_Map_Cache(LEVEL cache_level, uint64 cache_size, uint32 block_size);
+
+        Cache* access(uint64 address, uint8 access_type) override;
 };
 
 
