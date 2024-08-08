@@ -1,7 +1,16 @@
 #include "cache_types.h"
 
+uint32 simple_log_2(int x) {
+    int log = 0;
+    while (x > 1) {
+        x /= 2;
+        log++;
+    }
+    return log; 
+}
 
-Cache::Cache(LEVEL cache_level, uint64 cache_size, uint32 block_size, std::shared_ptr<Statistics> stats) : cache_level(cache_level), cache_size(cache_size), block_size(block_size) {
+
+Cache::Cache(LEVEL cache_level, uint64 cache_size, uint32 block_size, std::shared_ptr<Statistics> stats, std::shared_ptr<Cache> next_level) : cache_level(cache_level), cache_size(cache_size), block_size(block_size), next_level(next_level) {
     //Find number of offset bits for later
     num_offset_bits = simple_log_2(block_size);
     this->stats = stats;
@@ -10,7 +19,7 @@ Cache::Cache(LEVEL cache_level, uint64 cache_size, uint32 block_size, std::share
 
 
 
-Set_Associative_Cache::Set_Associative_Cache(LEVEL cache_level, uint64 cache_size, uint32 block_size, REPLACEMENT replacement_policy, uint8 num_ways, std::shared_ptr<Statistics> stats) : Cache(cache_level, cache_size, block_size, stats), replacement_policy(replacement_policy), num_ways(num_ways) {    
+Set_Associative_Cache::Set_Associative_Cache(LEVEL cache_level, uint64 cache_size, uint32 block_size, REPLACEMENT replacement_policy, uint8 num_ways, std::shared_ptr<Statistics> stats, std::shared_ptr<Cache> next_level) : Cache(cache_level, cache_size, block_size, stats, next_level), replacement_policy(replacement_policy), num_ways(num_ways) {    
     //Finish finding number of index bits
     num_indexes = cache_size/(block_size * num_ways);
     num_index_bits = simple_log_2(num_indexes);
@@ -72,6 +81,8 @@ Cache_Block* Set_Associative_Cache::access(uint64 address, uint8 access_type) {
 
         //TO-DO add logic to determine the type of cache miss and increment the appropriate statistic
 
+        //implement logic for different access types, read/write/instruction_fetch
+
         if (invalid_way != -1) {
             
             Cache_Block* target = new Cache_Block();
@@ -91,7 +102,7 @@ Cache_Block* Set_Associative_Cache::access(uint64 address, uint8 access_type) {
                 target->index = index;
                 target->tag   = tag;
                 target->valid = 1;
-                target->lru_index = 1;
+                target->lru_index = (uint8)1;
                 int i;
                 for (i = 0; i < num_ways; ++i) {
                     if (blocks[index][i].lru_index == num_ways) {

@@ -71,15 +71,15 @@ class Cache {
         uint32 num_indexes;
 
         //Reference to next level of cache so we can access it on a cache miss
-        Cache* next_level;
+        std::shared_ptr<Cache> next_level;
 
         //Object to hold all relevant statistics 
         std::shared_ptr<Statistics> stats;
 
     public:
         //Contructor for Cache, it should initialize every member variable except num_index_bits
-        Cache(LEVEL cache_level, uint64 cache_size, uint32 block_size, std::shared_ptr<Statistics> stats);
-        ~Cache();
+        Cache(LEVEL cache_level, uint64 cache_size, uint32 block_size, std::shared_ptr<Statistics> stats, std::shared_ptr<Cache> next_level);
+        virtual ~Cache() = default;
 
         //Function to make a memory access to this cache, is overriden by each cache type
         virtual Cache_Block* access(uint64 address, uint8 access_type) = 0;
@@ -100,9 +100,13 @@ class Set_Associative_Cache : Cache {
 
     public: 
         Set_Associative_Cache(LEVEL cache_level, uint64 cache_size, uint32 block_size, REPLACEMENT replacement_policy,
-                                uint8 num_ways, std::shared_ptr<Statistics> stats);
+                                uint8 num_ways, std::shared_ptr<Statistics> stats, std::shared_ptr<Cache> next_level);
 
         ~Set_Associative_Cache();
+
+        Cache_Block** get_backing_array() {
+            return blocks;
+        }
         
         //Function to make a memory access to a Set Associative Cache
         //It returns 1 for a hit and -1 for a miss. Other values may be used for debugging
@@ -116,7 +120,7 @@ class Direct_Map_Cache : Cache {
         //Dynamically allocated array that holds tag and data info
         Cache_Block* blocks;
     public:
-        Direct_Map_Cache(LEVEL cache_level, uint64 cache_size, uint32 block_size, std::shared_ptr<Statistics> stats);
+        Direct_Map_Cache(LEVEL cache_level, uint64 cache_size, uint32 block_size, std::shared_ptr<Statistics> stats, std::shared_ptr<Cache> next_level);
 
         Cache_Block* access(uint64 address, uint8 access_type) override;
 };
