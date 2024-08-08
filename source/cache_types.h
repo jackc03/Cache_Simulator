@@ -1,6 +1,7 @@
-#include "includes.h"
 #ifndef CACHE_TYPES_H
 #define CACHE_TYPES_H
+#include "library_includes.h"
+
 
 enum LEVEL {L1, L2, L3};
 
@@ -11,28 +12,41 @@ class Cache_Block {
     public:
         bool   valid;
         bool   dirty;
+
+        //Index of how recently used a cache block is
+        //1 is most recently used, num_ways is least recently used, and 0 is reserved for invalid blocks
         uint8  lru_index;
         uint32 index;
-        uint32 tag;
         uint32 data; //maybe unnecessary
+        uint64 tag;
 
 };
 
-class statistics {
-    int l1_misses;
-    int l1_hits;
-    
-    int l2_misses;
-    int l2_hits;
-    
-    int l3_misses;
-    int l3_hits;
+//TO-DO add all needed logic so stats is updated correctly, this is partially done in the access() function
+class Statistics {
+    public:
+        int l1_misses;
+        int l1_hits;
+        
+        int l2_misses;
+        int l2_hits;
+        
+        int l3_misses;
+        int l3_hits;
 
-    //number of times an address wasn't in any level of cache
-    int full_cache_misses;
-    //number of time an address was in atleast on level of cache
-    int full_cache_hits;
-}
+        //number of times an address wasn't in any level of cache
+        int full_cache_misses;
+        //number of time an address was in atleast on level of cache
+        int full_cache_hits;
+
+        //Number of writes to main memory - does not include writebacks from one level to another, only l3->main memory
+        int cache_full_writebacks;
+
+        //Variables to track different types of misses
+        //TO-DO implement a way to keep track of what blocks have been accessed before, most likely a vector
+        int compulsory_misses;
+        int conflict_misses;
+};
 
 
 
@@ -60,14 +74,15 @@ class Cache {
         Cache* next_level;
 
         //Object to hold all relevant statistics 
-
+        std::shared_ptr<Statistics> stats;
 
     public:
         //Contructor for Cache, it should initialize every member variable except num_index_bits
-        Cache(LEVEL cache_level, uint64 cache_size, uint32 block_size);
+        Cache(LEVEL cache_level, uint64 cache_size, uint32 block_size, std::shared_ptr<Statistics> stats);
+        ~Cache();
 
         //Function to make a memory access to this cache, is overriden by each cache type
-        virtual Cache* access(uint64 address, uint8 access_type) = 0;
+        virtual Cache_Block* access(uint64 address, uint8 access_type) = 0;
 
 };
 
@@ -85,12 +100,14 @@ class Set_Associative_Cache : Cache {
 
     public: 
         Set_Associative_Cache(LEVEL cache_level, uint64 cache_size, uint32 block_size, REPLACEMENT replacement_policy,
-                                uint8 num_ways);
+                                uint8 num_ways, std::shared_ptr<Statistics> stats);
+
+        ~Set_Associative_Cache();
         
         //Function to make a memory access to a Set Associative Cache
         //It returns 1 for a hit and -1 for a miss. Other values may be used for debugging
         //To use the return value, you must downcast using dynamic_cast
-        Cache* access(uint64 address, uint8 access_type) override;
+        Cache_Block* access(uint64 address, uint8 access_type) override;
 
 };
 
@@ -99,9 +116,9 @@ class Direct_Map_Cache : Cache {
         //Dynamically allocated array that holds tag and data info
         Cache_Block* blocks;
     public:
-        Direct_Map_Cache(LEVEL cache_level, uint64 cache_size, uint32 block_size);
+        Direct_Map_Cache(LEVEL cache_level, uint64 cache_size, uint32 block_size, std::shared_ptr<Statistics> stats);
 
-        Cache* access(uint64 address, uint8 access_type) override;
+        Cache_Block* access(uint64 address, uint8 access_type) override;
 };
 
 
