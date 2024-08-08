@@ -6,4 +6,6 @@ SRC := $(wildcard $(SRCDIR)/*.cpp)
 
 .PHONY: debug
 debug: FLAGS += -ggdb -3 -DDEBUG
+debug: 
+
 
