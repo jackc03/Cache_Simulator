@@ -27,13 +27,13 @@ Set_Associative_Cache::Set_Associative_Cache(LEVEL cache_level, uint64 cache_siz
     
     //Allocate memory for array of cache blocks
     blocks = new Cache_Block*[num_indexes];
-    for (int i = 0; i < num_indexes; ++i) {
+    for (int i = 0; (uint32) i < num_indexes; ++i) {
         blocks[i] = new Cache_Block[num_ways]();
     }
 }
 
 Set_Associative_Cache::~Set_Associative_Cache() {
-    for (int i = 0; i < num_indexes; ++i) {
+    for (int i = 0; (uint32) i < num_indexes; ++i) {
         delete blocks[i];
     }
     delete blocks;
@@ -83,27 +83,56 @@ Cache_Block* Set_Associative_Cache::access(uint64 address, uint8 access_type) {
 
         //implement logic for different access types, read/write/instruction_fetch
 
-        if (invalid_way != -1) {
+
+        //Following code works but needed to be refactored
+        // if (invalid_way != -1) {
             
-            Cache_Block* target = new Cache_Block();
-            target->index = index;
-            target->tag   = tag;
-            target->valid = 1;
-            target->lru_index = 1;
+        //     Cache_Block* target = new Cache_Block();
+        //     target->index = index;
+        //     target->tag   = tag;
+        //     target->valid = 1;
+        //     target->lru_index = 1;
+        //     target->dirty = access_type == 2 ? 1 : 0;
+        //     memcpy(&blocks[index][invalid_way], target, sizeof(Cache_Block));
+        //     return &blocks[index][invalid_way];
 
-            memcpy(&blocks[index][invalid_way], target, sizeof(Cache_Block));
-            return &blocks[index][invalid_way];
+
+        // } else {
+        //     //use alwasy true if statement to place logic for later
+        //     if (replacement_policy == LRU || 1) {
+        //         Cache_Block* target = new Cache_Block();
+        //         target->index = index;
+        //         target->tag   = tag;
+        //         target->valid = 1;
+        //         target->lru_index = (uint8)1;
+        //         target->dirty = access_type == 2 ? 1 : 0;
+        //         int i;
+        //         for (i = 0; i < num_ways; ++i) {
+        //             if (blocks[index][i].lru_index == num_ways) {
+        //                 break;
+        //             }
+        //         }
+
+        //         int prev_index = blocks[index][i].lru_index;
+        //         blocks[index][i].lru_index = 1;
+        //         for (int j = 0; j < num_ways; ++j) {
+        //             if (blocks[index][j].lru_index > prev_index) {
+        //                 blocks[index][j].lru_index--;
+        //             }
+        //         }
+
+        //         memcpy(&blocks[index][i], target, sizeof(Cache_Block));
+        //         return &blocks[index][i];
+        //     }
+
+        // }
 
 
-        } else {
-            //use alwasy true if statement to place logic for later
+        int i = 0;
+
+        if (invalid_way == -1) {
+            //follow replacement policy
             if (replacement_policy == LRU || 1) {
-                Cache_Block* target = new Cache_Block();
-                target->index = index;
-                target->tag   = tag;
-                target->valid = 1;
-                target->lru_index = (uint8)1;
-                int i;
                 for (i = 0; i < num_ways; ++i) {
                     if (blocks[index][i].lru_index == num_ways) {
                         break;
@@ -117,18 +146,49 @@ Cache_Block* Set_Associative_Cache::access(uint64 address, uint8 access_type) {
                         blocks[index][j].lru_index--;
                     }
                 }
-
-                memcpy(&blocks[index][i], target, sizeof(Cache_Block));
-                return &blocks[index][i];
             }
-
+        } else {
+            i = invalid_way;
         }
+        Cache_Block* target = new Cache_Block();
+        target->index = index;
+        target->tag   = tag;
+        target->valid = 1;
+        target->lru_index = (uint8)1;
+        target->dirty = access_type == 2 ? 1 : 0;
+
+        memcpy(&blocks[index][i], target, sizeof(Cache_Block));
+        return &blocks[index][i];
 
     } else if (next_level == 0) {
         printf("Current cache level %d does not have a valid reference to next level and is not the highest level of cache", cache_level);
         exit(1);
     } else {
-        //TO-DO implement writes so I can writeback a cache block after eviction
+        int i = 0;
+
+        if (invalid_way == -1) {
+            //follow replacement policy
+            if (replacement_policy == LRU || 1) {
+                for (i = 0; i < num_ways; ++i) {
+                    if (blocks[index][i].lru_index == num_ways) {
+                        break;
+                    }
+                }
+
+                int prev_index = blocks[index][i].lru_index;
+                blocks[index][i].lru_index = 1;
+                for (int j = 0; j < num_ways; ++j) {
+                    if (blocks[index][j].lru_index > prev_index) {
+                        blocks[index][j].lru_index--;
+                    }
+                }
+            }
+        } else {
+            i = invalid_way;
+        }
+
+        
+        
         return nullptr;
 
     }

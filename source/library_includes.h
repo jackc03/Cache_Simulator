@@ -10,6 +10,7 @@
 #include <string>
 #include <memory>
 #include <cstdint>
+#include <cassert>
 
 //variable that defines whether or not to print debug statements
 #define DEBUG 1

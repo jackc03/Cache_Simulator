@@ -81,8 +81,16 @@ class Cache {
         Cache(LEVEL cache_level, uint64 cache_size, uint32 block_size, std::shared_ptr<Statistics> stats, std::shared_ptr<Cache> next_level);
         virtual ~Cache() = default;
 
-        //Function to make a memory access to this cache, is overriden by each cache type
-        virtual Cache_Block* access(uint64 address, uint8 access_type) = 0;
+        /**
+         * @brief Function to make a memory access on this level of memory
+         * 
+         * @param address: address to access
+         * @param access_type: type of access, 1 for read and 2 for write
+         * 
+         * @return a copy of the cache block that has been accessed.
+         * 
+         */
+        virtual Cache_Block* access(uint64 address, uint8 access_type)  = 0;
 
 };
 
@@ -108,9 +116,15 @@ class Set_Associative_Cache : Cache {
             return blocks;
         }
         
-        //Function to make a memory access to a Set Associative Cache
-        //It returns 1 for a hit and -1 for a miss. Other values may be used for debugging
-        //To use the return value, you must downcast using dynamic_cast
+        /**
+         * @brief Function to make a memory access on this level of memory
+         * 
+         * @param address: address to access
+         * @param access_type: type of access, 1 for read and 2 for write
+         * 
+         * @return a copy of the cache block that has been accessed.
+         * 
+         */
         Cache_Block* access(uint64 address, uint8 access_type) override;
 
 };
