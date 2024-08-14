@@ -25,6 +25,12 @@ class Cache_Block {
 //TO-DO add all needed logic so stats is updated correctly, this is partially done in the access() function
 class Statistics {
     public:
+
+        int accesses;
+        int hits;
+        int missess;
+
+
         int l1_misses;
         int l1_hits;
         
@@ -34,10 +40,7 @@ class Statistics {
         int l3_misses;
         int l3_hits;
 
-        //number of times an address wasn't in any level of cache
-        int full_cache_misses;
-        //number of time an address was in atleast on level of cache
-        int full_cache_hits;
+
 
         //Number of writes to main memory - does not include writebacks from one level to another, only l3->main memory
         int cache_full_writebacks;
@@ -120,7 +123,7 @@ class Set_Associative_Cache : Cache {
          * @brief Function to make a memory access on this level of memory
          * 
          * @param address: address to access
-         * @param access_type: type of access, 1 for read and 2 for write
+         * @param access_type: type of access, 0 for read and 1 for write
          * 
          * @return a copy of the cache block that has been accessed.
          * 

@@ -33,6 +33,7 @@ Set_Associative_Cache::Set_Associative_Cache(LEVEL cache_level, uint64 cache_siz
 }
 
 Set_Associative_Cache::~Set_Associative_Cache() {
+    //delete all pointers
     for (int i = 0; (uint32) i < num_indexes; ++i) {
         delete blocks[i];
     }
@@ -41,14 +42,17 @@ Set_Associative_Cache::~Set_Associative_Cache() {
 
 
 Cache_Block* Set_Associative_Cache::access(uint64 address, uint8 access_type) {
+    stats->accesses++;
     //Make bit masks to extract index and tag
     uint64 index_mask = ((1 << num_index_bits) - 1) << num_offset_bits;
     uint64 tag_mask   = ((1 << (64 - (num_index_bits + num_offset_bits))) - 1) << (num_index_bits + num_offset_bits);
+    uint64 off_mask   = (1 << num_index_bits) - 1;
 
     
     //Use bitmasks to extract index and tag
-    uint64 index = index_mask & address;
-    uint64 tag   = tag_mask   & address;
+    uint64 index  = index_mask & address;
+    uint64 tag    = tag_mask   & address;
+    uint64 offset = off_mask   & address;
     index = index >> num_offset_bits;
     tag   = tag   >> (num_index_bits + num_offset_bits);
 
@@ -56,11 +60,27 @@ Cache_Block* Set_Associative_Cache::access(uint64 address, uint8 access_type) {
     int invalid_way = -1;
     for (int i = 0; i < num_ways; ++i) {
         if(blocks[index][i].valid == 0) {
-            invalid_way = i;
+            //if there's an empty spot save its index so we can put the cache block there
+
+            //if we've already found an invalid way dont update it so we can make sure we fill lowest index first
+            invalid_way = invalid_way == -1 ? i : invalid_way;
             blocks[index][i].lru_index = 0;
         }
 
+        //found a hit
         if (blocks[index][i].tag == tag) {
+
+            //increment statistics
+            stats->hits++;
+            if (cache_level == L1) {
+                stats->l1_hits++;
+            } else if (cache_level == L2) {
+                stats->l2_hits++;
+            } else {
+                stats->l3_hits++;
+            }
+
+            //update lru indexes
             int prev_index = blocks[index][i].lru_index;
             for (int j = 0; j < num_ways; ++j) {
                 if (blocks[index][j].lru_index > prev_index) {
@@ -69,30 +89,55 @@ Cache_Block* Set_Associative_Cache::access(uint64 address, uint8 access_type) {
             }
             blocks[index][i].lru_index = 1;
 
+            //if the access type is a write set the dirty bit
+            if (access_type == 1) {
+                blocks[index][i].dirty = 1;
+            }
+            
+            //return address of this block
             return &blocks[index][i];
         }
     }
-    stats->l3_misses++;
-    stats->full_cache_misses++;
-    //if 
+
+    //this means its a miss
+    //update relevant statistics
+    stats->missess++;
+    if (cache_level == L1) {
+        stats->l1_misses++;
+    } else if (cache_level == L2) {
+        stats->l2_misses++;
+    } else {
+        stats->l3_misses++;
+    }
+    
+    
+    
+    //Check which level of cache we are at and do accordingly
     if (cache_level == L3 && next_level == 0) {
         //This is a full cache miss, meaning the block was not found in L1, L2, or L3. 
-        //Increment statistics, pull a new cache block, and follow replacement policy
+        //Pull a new cache block and follow replacement policy
+
 
         //TO-DO add logic to determine the type of cache miss and increment the appropriate statistic
 
-        //implement logic for different access types, read/write/instruction_fetch
 
         int i = 0;
         if (invalid_way == -1) {
             //follow replacement policy
-            if (replacement_policy == LRU || 1) {
+            if (replacement_policy == LRU) {
                 for (i = 0; i < num_ways; ++i) {
+                    //find which way to evict
                     if (blocks[index][i].lru_index == num_ways) {
                         break;
                     }
                 }
 
+                //evict way and writeback if necessary
+                if (blocks[index][i].dirty) {
+                    stats->cache_full_writebacks++;
+                }
+
+                //update other ways' lru index
                 int prev_index = blocks[index][i].lru_index;
                 blocks[index][i].lru_index = 1;
                 for (int j = 0; j < num_ways; ++j) {
@@ -100,18 +145,22 @@ Cache_Block* Set_Associative_Cache::access(uint64 address, uint8 access_type) {
                         blocks[index][j].lru_index--;
                     }
                 }
+            } else {
+                printf("Invalid replacement policy supplied. GDB from here\n");
+                exit(1);
             }
         } else {
+            //if theres a free spot, take it
             i = invalid_way;
         }
 
-
+        //Pull in new block
         Cache_Block* target = new Cache_Block();
         target->index = index;
         target->tag   = tag;
         target->valid = 1;
         target->lru_index = (uint8)1;
-        target->dirty = access_type == 2 ? 1 : 0;
+        target->dirty = access_type == 1 ? 1 : 0;
 
         memcpy(&blocks[index][i], target, sizeof(Cache_Block));
         delete target;
@@ -121,12 +170,14 @@ Cache_Block* Set_Associative_Cache::access(uint64 address, uint8 access_type) {
         printf("Current cache level %d does not have a valid reference to next level and is not the highest level of cache", cache_level);
         exit(1);
     } else {
-        int i = 0;
-        
 
+        //This is an L1 or L2 cache miss.
+
+        //Again, find if theres an empty spot. If not follow replacement policy, if so put the new block there
+        int i = 0;
         if (invalid_way == -1) {
             //follow replacement policy
-            if (replacement_policy == LRU || 1) {
+            if (replacement_policy == LRU) {
                 for (i = 0; i < num_ways; ++i) {
                     if (blocks[index][i].lru_index == num_ways) {
                         break;
@@ -140,21 +191,30 @@ Cache_Block* Set_Associative_Cache::access(uint64 address, uint8 access_type) {
                         blocks[index][j].lru_index--;
                     }
                 }
+            } else {
+                printf("Invalid replacement policy supplied. GDB from here\n");
+                exit(1);
             }
         } else {
             i = invalid_way;
         }
 
-        //TO-DO finish access part for L1 and L2
-        if (blocks[index][i].valid && blocks[index][i].dirty) {
-            //TO-DO recreate address from tag and index and write block back to next level of memory
+        //TO-DO implement different write back policies
+        //If the victim block is dirty then write it back
+        if (blocks[index][i].dirty) {
+            next_level->access(address, 1);
 
         }
 
+        //Now find the desired block and copy it into the victim's index and way
         Cache_Block* retrieved = next_level->access(address, access_type);
         memcpy(&blocks[index][i], retrieved, sizeof(Cache_Block));
         blocks[index][i].lru_index = 1;
-        blocks[index][i].dirty = access_type == 2? 1 : 0;
+
+        //If access type is a write then set dirty bit to 1W
+        if (access_type == 1) {
+                blocks[index][i].dirty = 1;
+        }
         if (!blocks[index][i].valid) {
             printf("block came back as not valid, gdb from this point.\n");
             exit(1);
