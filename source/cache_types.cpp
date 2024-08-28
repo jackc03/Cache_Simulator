@@ -40,7 +40,15 @@ Set_Associative_Cache::~Set_Associative_Cache() {
     delete blocks;
 }
 
-
+/**
+ * @brief Function to make a memory access on this level of memory
+ * 
+ * @param address: address to access
+ * @param access_type: type of access, 0 for read and 1 for write
+ * 
+ * @return a copy of the cache block that has been accessed.
+ * 
+ */
 Cache_Block* Set_Associative_Cache::access(uint64 address, uint8 access_type) {
     stats->accesses++;
     //Make bit masks to extract index and tag

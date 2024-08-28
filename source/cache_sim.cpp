@@ -3,7 +3,7 @@
 #include "cache_hierarchy.h"
 
 //List of tests
-void single_level_basic_cache_test(std::shared_ptr<Single_Level_Test_Hierarchy> test);
+void single_level_basic_cache_test(std::shared_ptr<Three_Level_Cache_Hierarchy> test);
 
 
 int next_access(std::shared_ptr<Three_Level_Cache_Hierarchy> cache_hierarchy,FILE* trace_file) {
@@ -34,8 +34,10 @@ int main() {
     //Make actual hierarchy
     std::shared_ptr<Three_Level_Cache_Hierarchy> cache_hierarchy(new Three_Level_Cache_Hierarchy(l1_cache_size, l2_cache_size, l3_cache_size, block_size, replacement_policy, associativity));
 
-    //iterate through and do each access
-    while (next_access(cache_hierarchy, input_file));
+    // //iterate through and do each access
+    // while (next_access(cache_hierarchy, input_file));
+
+    single_level_basic_cache_test(cache_hierarchy);
 
 
 
@@ -48,7 +50,7 @@ int main() {
 
 
 
-void single_level_basic_cache_test(std::shared_ptr<Single_Level_Test_Hierarchy> test) {
+void single_level_basic_cache_test(std::shared_ptr<Three_Level_Cache_Hierarchy> test) {
 
     Cache_Block* block = test->access(0b11011000, 0);
     // std::cout << block->tag << "\n" << block->index << "\n" << block->valid << "\n" << block->dirty << "\n" << static_cast<int>(block->lru_index) << "\n";

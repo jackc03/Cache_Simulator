@@ -14,7 +14,7 @@ class Three_Level_Cache_Hierarchy {
             std::shared_ptr<Statistics> stats(new Statistics());
             
             L3 = std::shared_ptr<Set_Associative_Cache>(new Set_Associative_Cache(LEVEL::L3, l3_cache_size, block_size, replacement_policy, associativity, stats, nullptr));
-            L2 = std::shared_ptr<Set_Associative_Cache>(new Set_Associative_Cache(LEVEL::L2, l1_cache_size, block_size, replacement_policy, associativity, stats, std::dynamic_pointer_cast<Cache>(L3)));
+            L2 = std::shared_ptr<Set_Associative_Cache>(new Set_Associative_Cache(LEVEL::L2, l2_cache_size, block_size, replacement_policy, associativity, stats, std::dynamic_pointer_cast<Cache>(L3)));
             L1 = std::shared_ptr<Set_Associative_Cache>(new Set_Associative_Cache(LEVEL::L1, l1_cache_size, block_size, replacement_policy, associativity, stats, std::dynamic_pointer_cast<Cache>(L2)));
 
         }

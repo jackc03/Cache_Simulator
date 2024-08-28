@@ -97,7 +97,7 @@ class Cache {
 
 };
 
-class Set_Associative_Cache : Cache {
+class Set_Associative_Cache : public Cache {
 
     protected:
         //Enum holding replacement policy type
@@ -119,20 +119,12 @@ class Set_Associative_Cache : Cache {
             return blocks;
         }
         
-        /**
-         * @brief Function to make a memory access on this level of memory
-         * 
-         * @param address: address to access
-         * @param access_type: type of access, 0 for read and 1 for write
-         * 
-         * @return a copy of the cache block that has been accessed.
-         * 
-         */
+
         Cache_Block* access(uint64 address, uint8 access_type) override;
 
 };
 
-class Direct_Map_Cache : Cache {
+class Direct_Map_Cache : public Cache {
     protected: 
         //Dynamically allocated array that holds tag and data info
         Cache_Block* blocks;
