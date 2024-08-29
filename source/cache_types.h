@@ -107,7 +107,7 @@ class Set_Associative_Cache : public Cache {
         const uint8 num_ways;
 
         //Array holding all cache blocks and ways
-        Cache_Block **blocks;
+        Cache_Block** blocks;
 
     public: 
         Set_Associative_Cache(LEVEL cache_level, uint64 cache_size, uint32 block_size, REPLACEMENT replacement_policy,

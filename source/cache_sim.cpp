@@ -22,14 +22,16 @@ int next_access(std::shared_ptr<Three_Level_Cache_Hierarchy> cache_hierarchy,FIL
 //Program to take in memory traces and simulate the cache hierarchy
 int main() {
     //TO-DO implement parameters and default arguements from commandline
+    //TO-DO make the program read a trace file and find the average memory access time for it
+    //TO-DO add a direct mapped cache and other types of replacement policies
 
     //declare some important variables that will need to be set
     FILE* input_file;
     uint64 l1_cache_size, l2_cache_size, l3_cache_size;
-    l1_cache_size = l2_cache_size = l3_cache_size = 4096;
-    uint64 block_size = 32;
+    l1_cache_size = l2_cache_size = l3_cache_size = 256;
+    uint64 block_size = 4;
     REPLACEMENT replacement_policy = LRU;
-    uint8 associativity = 8;
+    uint8 associativity = 4;
 
     //Make actual hierarchy
     std::shared_ptr<Three_Level_Cache_Hierarchy> cache_hierarchy(new Three_Level_Cache_Hierarchy(l1_cache_size, l2_cache_size, l3_cache_size, block_size, replacement_policy, associativity));
