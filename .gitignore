@@ -4,3 +4,5 @@
 .vscode/*
 bin/*
 build/*
+example_cache/
+example_cache/**
